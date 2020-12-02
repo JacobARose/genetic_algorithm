@@ -53,11 +53,11 @@ from genetic_algorithm.organism.organism import Organism
 from genetic_algorithm.plotting import log_high_loss_examples
 from genetic_algorithm.datasets.plant_village import ClassLabelEncoder, load_and_preprocess_data
 from genetic_algorithm import stateful
-from genetic_algorithm.chromosome import ChromosomeSampler
+from genetic_algorithm.chromosome import sampler #ChromosomeSampler
 
 
 
-sampler=ChromosomeSampler()
+
 
     
 def softmax(x):
@@ -74,7 +74,7 @@ class Generation:
                  previous_best_organism,
                  verbose: bool=False,
                  initialize: bool=True,
-                 DEBUG=False):
+                 debug=False):
         self.data = data
         self.config = generation_config
         self.organism_config = organism_config
@@ -86,7 +86,7 @@ class Generation:
         self.previous_best_organism = previous_best_organism or None
         self.best = {}
         self._initialized = False
-        self.debug = DEBUG
+        self.debug = debug
         if initialize:
             self.initialize_population(verbose=verbose)
         self.verbose = verbose
@@ -108,6 +108,12 @@ class Generation:
         self._config = config
         self.__dict__.update(config)
         
+    @property
+    def name(self):
+        return f'phase_{self.phase}-gen_{self.generation_number}--contains_{self.population_size}_organisms'
+    
+    def __repr__(self):
+        return f'<Generation object[{self.name}]>'
         
     def initialize_population(self, verbose=True):
         '''
@@ -132,7 +138,7 @@ class Generation:
                            generation_number=self.generation_number,
                            organism_id=idx,
                            best_organism=self.previous_best_organism,
-                           DEBUG=self.debug)
+                           debug=self.debug)
             org.build_model()
             org.fitnessFunction(org.data['train'],
                                 org.data['test'],
@@ -220,8 +226,8 @@ class Generation:
             
         self.run = wandb.init(**BestOrganism.get_wandb_credentials(phase=BestOrganism.phase,
                               generation_number=BestOrganism.generation_number),
-                              config=BestOrganism.config,
-                              reinit=True,
+                              resume='allow',
+                              tags=['evaluate'],
                               id=run.id)
         self.run_id = self.run.id
         
@@ -229,16 +235,18 @@ class Generation:
 
             self.run.log({'population_size':len(fitness)}, commit=False)
             self.run.log({'Best fitness': fitness[0]}, commit=False)
-            self.run.log({'Average fitness': sum(fitness)/len(fitness)})
+            self.run.log({'Average fitness': sum(fitness)/len(fitness)}, commit=False)
 
             self.population[0].show()
             print('BEST ORGANISM', BestOrganism.name)
     #         k=16
             if last:
+#                 import ipdb;ipdb.set_trace()
                 k=64
                 model_path = f'best-model-phase_{self.phase}.png'
                 tf.keras.utils.plot_model(BestOrganism.model, to_file=model_path)
-                run.log({"best_model": [wandb.Image(model_path, caption=f"Best Model phase_{self.phase}")]})
+                model_structure_image = [wandb.Image(model_path, caption=f"Best Model phase_{self.phase}")]
+                run.log({"best_model": model_structure_image}, commit=False)
                 log_high_loss_examples(BestOrganism.test_data,
                                        BestOrganism.model, 
                                        k=k,
@@ -247,7 +255,7 @@ class Generation:
         return BestOrganism
 
     def run_generation(self):
-        print('RUN GENERATION')
+        print(f'RUN GENERATION {self.generation_number}')
         self.generate()
         last = False
         if self.generation_number == self.num_generations_per_phase:
@@ -256,7 +264,7 @@ class Generation:
         return best_organism
         
     def run_phase(self):#, num_generations_per_phase: int=1):
-        print('\n'*2,'RUN PHASE')
+        print('\n'*2,f'RUN PHASE {self.phase}')
         while self.generation_number < self.num_generations_per_phase:
             best_organism = self.run_generation()
             print(f'FINISHED GENERATION {self.generation_number}')

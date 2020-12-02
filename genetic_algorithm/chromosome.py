@@ -44,9 +44,9 @@ class Chromosome(stateful.Stateful):#BaseChromosome):#(NamedTuple):
           state: Dict. The state to restore for this object.
         """
         state = copy.deepcopy(state)
-                state['activation_type'] = ActivationLayers[state['activation_type']]
+        state['activation_type'] = ActivationLayers[state['activation_type']]
         state['pool_type'] = PoolingLayers[state['pool_type']]
-        if isinstance(state['activation_type'], str)
+#         if isinstance(state['activation_type'], str)
         
         self._state = state
         
@@ -140,7 +140,7 @@ class ChromosomeOptions(stateful.Stateful): #BaseOptions): #object):
         Running this function will randomly generate a new Chromosome instance for which each genetic variant is randomly sampled from this object's contained data,
         in the form of mappings between gene names as keys, and lists of variants as values.
         '''
-        return Chromosome(hparams={gene:self.sample_k_variants_from_gene(gene) for gene in self.chromosomes.keys()})
+        return {gene:self.sample_k_variants_from_gene(gene) for gene in self.chromosomes.keys()}
     
     def generate_k_chromosomes(self, k: int=1, seed=None):
         return [self.generate_chromosome(seed=seed) for _ in range(k)]
@@ -192,3 +192,7 @@ class ChromosomeSampler:
                                       },
                                       phase=phase)
         return options.generate_chromosome(phase=phase)
+
+    
+    
+sampler=ChromosomeSampler()

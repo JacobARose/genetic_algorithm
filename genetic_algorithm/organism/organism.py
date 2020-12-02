@@ -20,6 +20,7 @@ from tensorflow.keras.layers import Conv2D, BatchNormalization, MaxPool2D, ReLU,
 from typing import List, Tuple, Union, Dict, NamedTuple
 from genetic_algorithm import stateful
 from genetic_algorithm.chromosome import Chromosome
+from genetic_algorithm.chromosome import sampler
 import wandb
 from wandb.keras import WandbCallback
 
@@ -27,6 +28,25 @@ from wandb.keras import WandbCallback
 ActivationLayers = Box(ReLU=ReLU, ELU=ELU, LeakyReLU=LeakyReLU)
 PoolingLayers = Box(MaxPool2D=MaxPool2D, AveragePooling2D=AveragePooling2D)
 import gc
+
+
+def process_chromosome_functions(chromosome: Dict=None, **kwargs):
+    '''
+    Function to convert a chromosome dict containing str names of functions to the actual function. Use this when running organism.build_model()
+    '''
+    if chromosome:
+        chromosome = copy.deepcopy(chromosome)
+        chromosome['activation_type'] = ActivationLayers[chromosome['activation_type']]
+        chromosome['pool_type'] = PoolingLayers[chromosome['pool_type']]
+        return chromosome
+    elif 'activation_type' in kwargs:
+        return ActivationLayers[kwargs['activation_type']]
+    elif 'pool_type' in kwargs:
+        return PoolingLayers[kwargs['pool_type']]
+    else:
+        raise Exception(f'Invalid arguments provided to function process_chromosome_functions() in {__file__}')
+
+
 
 
 class Organism:
@@ -38,7 +58,7 @@ class Organism:
                  generation_number=0,
                  organism_id=0,
                  best_organism=None,
-                 DEBUG=False):
+                 debug=False):
         '''
         
         Organism is an actor with a State that can take Action in the environment
@@ -70,7 +90,7 @@ class Organism:
             else:
                 self.last_model = best_organism.model
             
-        self.debug = DEBUG
+        self.debug = debug
     
     @property
     def name(self):
@@ -105,7 +125,7 @@ class Organism:
    
     @property
     def chromosome(self):
-        return self._chromosome.get_chromosome(serialized=False)
+        return self._chromosome
     
     @chromosome.setter
     def chromosome(self, chromosome):
@@ -117,6 +137,9 @@ class Organism:
         '''
         K.clear_session()
         gc.collect()
+        
+        chromosome = process_chromosome_functions(chromosome=self.chromosome)
+        
         inputs = Input(shape=self.config.input_shape)
         if self.phase != 0:
             # Slice the prev best model # Use the model as a layer # Attach new layer to the sliced model
@@ -126,31 +149,31 @@ class Organism:
                 # To make the iteration efficient
                 layer.trainable = False
             inter_inputs = intermediate_model(inputs)
-            x = Conv2D(filters=self.chromosome['a_output_channels'],
+            x = Conv2D(filters=chromosome['a_output_channels'],
                        padding='same',
-                       kernel_size=self.chromosome['a_filter_size'],
-                       use_bias=self.chromosome['a_include_BN'])(inter_inputs)
+                       kernel_size=chromosome['a_filter_size'],
+                       use_bias=chromosome['a_include_BN'])(inter_inputs)
             # This is to ensure that we do not randomly chose anothere activation
-            self.chromosome['activation_type'] = self.best_organism.chromosome['activation_type']
+            chromosome['activation_type'] = process_chromosome_functions(activation_type=self.best_organism.chromosome['activation_type'])
         else:
             # For PHASE 0 only
             # input layer
-            x = Conv2D(filters=self.chromosome['a_output_channels'],
+            x = Conv2D(filters=chromosome['a_output_channels'],
                        padding='same',
-                       kernel_size=self.chromosome['a_filter_size'],
-                       use_bias=self.chromosome['a_include_BN'])(inputs)
+                       kernel_size=chromosome['a_filter_size'],
+                       use_bias=chromosome['a_include_BN'])(inputs)
             
-        if self.chromosome['a_include_BN']:
+        if chromosome['a_include_BN']:
             x = BatchNormalization()(x)
-        x = self.chromosome['activation_type']()(x)
-        if self.chromosome['include_pool']:
-            x = self.chromosome['pool_type'](strides=(1,1),
+        x = chromosome['activation_type']()(x)
+        if chromosome['include_pool']:
+            x = chromosome['pool_type'](strides=(1,1),
                                              padding='same')(x)
-        if self.phase != 0 and self.chromosome['b_include_layer'] == False:
+        if self.phase != 0 and chromosome['b_include_layer'] == False:
             # Except for PHASE0, there is a choice for
             # the number of layers that the model wants
-            if self.chromosome['include_skip']:
-                y = Conv2D(filters=self.chromosome['a_output_channels'],
+            if chromosome['include_skip']:
+                y = Conv2D(filters=chromosome['a_output_channels'],
                            kernel_size=(1,1),
                            padding='same')(inter_inputs)
                 x = Add()([y,x])
@@ -159,15 +182,15 @@ class Organism:
         else:
             # PHASE0 or no skip
             # in the tail
-            x = Conv2D(filters=self.chromosome['b_output_channels'],
+            x = Conv2D(filters=chromosome['b_output_channels'],
                        padding='same',
-                       kernel_size=self.chromosome['b_filter_size'],
-                       use_bias=self.chromosome['b_include_BN'])(x)
-            if self.chromosome['b_include_BN']:
+                       kernel_size=chromosome['b_filter_size'],
+                       use_bias=chromosome['b_include_BN'])(x)
+            if chromosome['b_include_BN']:
                 x = BatchNormalization()(x)
-            x = self.chromosome['activation_type']()(x)
-            if self.chromosome['include_skip']:
-                y = Conv2D(filters=self.chromosome['b_output_channels'],
+            x = chromosome['activation_type']()(x)
+            if chromosome['include_skip']:
+                y = Conv2D(filters=chromosome['b_output_channels'],
                            padding='same',
                            kernel_size=(1,1))(inputs)
                 x = Add()([y,x])
@@ -197,8 +220,10 @@ class Organism:
         self.run = wandb.init(**self.get_wandb_credentials(phase=self.phase,
                                generation_number=generation_number),
                                config=config,
-                               reinit=True)
+                               reinit=True,
+                               tags=['fitnessFunction'])
         self.run_id = self.run.id
+        self.run_name = self.run.name
         
         with self.run:
             self.model.fit(train_data,
@@ -242,7 +267,7 @@ class Organism:
             else:
                 child_chromosome[key] = partner.chromosome[key]
                 
-        child_chromosome = Chromosome(child_chromosome).get_chromosome(serialized=True)
+#         child_chromosome = Chromosome(child_chromosome).get_chromosome(serialized=True)
         child = Organism(chromosome=child_chromosome,
                          data=self.data,
                          config=self.config,
@@ -263,10 +288,13 @@ class Organism:
         '''
         index = np.random.randint(0, len(self.chromosome))
         key = list(self.chromosome.keys())[index]
+        
+        options = sampler(self.phase)
+        
         if  self.phase != 0:
             self.chromosome[key] = options[key][np.random.randint(len(options[key]))]
-        else:
-            self.chromosome[key] = options_phase0[key][np.random.randint(len(options_phase0[key]))]
+#         else:
+#             self.chromosome[key] = options_phase0[key][np.random.randint(len(options_phase0[key]))]
         self.build_model()
         self.fitnessFunction(self.train_data,
                              self.val_data,
@@ -278,6 +306,9 @@ class Organism:
         '''
         pp.pprint(self.config)
         pp.pprint(self.chromosome)
+        
+    def __repr__(self):
+        return f'<Organism object[{self.name}]>'
         
         
     def get_wandb_credentials(self, phase: int=None, generation_number: int=None):
