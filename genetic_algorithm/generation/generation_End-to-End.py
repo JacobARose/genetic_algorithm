@@ -7,7 +7,10 @@
 '''
 
 
+Created: 11-26-2020 by Jacob Rose
 
+
+Description: End-to-End prototype command line script for Evolutionary Algorithm
 
 
 python /media/data/jacob/GitHub/genetic_algorithm/Notebooks/generation/generation.py
@@ -395,10 +398,13 @@ class Organism:
         '''
         K.clear_session()
         inputs = Input(shape=self.config.input_shape)
-        if self.phase != 0:
-            # Slice the prev best model
-            # Use the model as a layer
-            # Attach new layer to the sliced model
+        if self.phase == 0:
+            x = Conv2D(filters=self.chromosome['a_output_channels'],
+                       padding='same',
+                       kernel_size=self.chromosome['a_filter_size'],
+                       use_bias=self.chromosome['a_include_BN'])(inputs)
+        else:
+            # Slice the prev best model         # Use the model as a layer # Attach new layer to the sliced model
             intermediate_model = Model(inputs=self.last_model.input,
                                        outputs=self.last_model.layers[-3].output)
             for layer in intermediate_model.layers:
@@ -409,15 +415,9 @@ class Organism:
                        padding='same',
                        kernel_size=self.chromosome['a_filter_size'],
                        use_bias=self.chromosome['a_include_BN'])(inter_inputs)
-            # This is to ensure that we do not randomly chose anothere activation
+            # This is to ensure that we do not randomly chose another activation
             self.chromosome['activation_type'] = self.prevBestOrganism.chromosome['activation_type']
-        else:
-            # For PHASE 0 only
-            # input layer
-            x = Conv2D(filters=self.chromosome['a_output_channels'],
-                       padding='same',
-                       kernel_size=self.chromosome['a_filter_size'],
-                       use_bias=self.chromosome['a_include_BN'])(inputs)
+
         if self.chromosome['a_include_BN']:
             x = BatchNormalization()(x)
         x = self.chromosome['activation_type']()(x)
