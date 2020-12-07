@@ -155,14 +155,28 @@ class ChromosomeOptions(stateful.Stateful): #BaseOptions): #object):
         state['pool_type'] = [PoolingLayers[pool_layer] for pool_layer in state['pool_type']]
         return state
     
+    def __getitem__(self, key):
+        return self.state[key]
+    
+    def __setitem__(self, key, value):
+        if not isinstance(value, list):
+            value = [value]
+        if key in self.state:
+            print(f'replacing set of variants for gene named {key} from ChromosomeOptions with {value}')
+        self.state[key] = value
+
+    
+    
+    
 
 class ChromosomeSampler:
     
-    def __call__(self, phase: int):
-        
+    def get_options(self, phase: int=0):
+        '''
+        Return the corresponding ChromosomeOptions object for the queried phase
+        '''
         if phase==0:
             options = ChromosomeOptions({
-#                                       'b_include_layer':[True],
                                       'a_filter_size':[(1,1), (3,3), (5,5), (7,7), (9,9)],
                                       'a_include_BN':[True, False],
                                       'a_output_channels':[8, 16, 32, 64, 128, 256, 512],
@@ -172,7 +186,8 @@ class ChromosomeSampler:
                                       'b_output_channels':[8, 16, 32, 64, 128, 256, 512],
                                       'include_pool':[True, False],
                                       'pool_type':['MaxPool2D', 'AveragePooling2D'],
-                                      'include_skip':[True, False]
+                                      'include_skip':[True, False],
+                                      'label_smoothing':[0.0, 0.1, 0.2, 0.3]
                                       },
                                       phase=phase)
 
@@ -188,9 +203,19 @@ class ChromosomeSampler:
                                       'b_output_channels':[8, 16, 32, 64, 128, 256, 512],
                                       'include_pool':[True, False],
                                       'pool_type':['MaxPool2D', 'AveragePooling2D'],
-                                      'include_skip':[True, False]
+                                      'include_skip':[True, False],
+                                      'label_smoothing':[0.0, 0.1, 0.2, 0.3]
                                       },
                                       phase=phase)
+        return options
+    
+    def __call__(self, phase: int):
+        '''
+        Return a single random sampling from the ChromosomeOptions for the queried phase
+        '''
+        
+        options = self.get_options(phase=phase)
+        
         return options.generate_chromosome(phase=phase)
 
     
