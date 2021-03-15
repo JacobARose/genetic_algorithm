@@ -269,11 +269,6 @@ class Generation:
                 model_img = cv2.imread(model_path)
                 model_structure_image = wandb.Image(model_img, caption=f"Best Model phase_{self.phase}")
                 
-                
-            prevBestOrganism = generation.evaluate(last=True)
-            keras.utils.plot_model(prevBestOrganism.model, to_file='best.png')
-            wandb.log({"best_model": [wandb.Image('best.png', caption="Best Model")]})
-                
                 run.log({"best_model": model_structure_image})#, commit=False)
                 log_high_loss_examples(test_data,
                                        model,
@@ -290,7 +285,12 @@ class Generation:
                                           run=self.run)
                 
                 logger.info(f'SAVING BEST MODEL: {BestOrganism.name}\nat {BestOrganism.model_dir}')
-                BestOrganism.log_model_artifact(run=self.run)                
+                BestOrganism.log_model_artifact(run=self.run)
+                
+                
+            prevBestOrganism = generation.evaluate(last=True)
+            keras.utils.plot_model(prevBestOrganism.model, to_file='best.png')
+            wandb.log({"best_model": [wandb.Image('best.png', caption="Best Model")]})
                 
             log_multiclass_metrics(test_data, 
                                    model,

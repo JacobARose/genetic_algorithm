@@ -1,3 +1,5 @@
+import os
+os.environ['TFDS_DATA_DIR'] = '/media/data/jacob/tensorflow_datasets'
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
@@ -45,11 +47,6 @@ class ClassLabelEncoder(stateful.Stateful):
     def set_state(self, state):
         self.__setstate__(state)
 
-    
-    
-    
-    
-    
     def decode_predictions(self, preds, top=5):
         """Decodes the prediction of an PlantVillage model.
         Arguments:
@@ -198,16 +195,37 @@ def get_parse_example_func(target_size, num_classes):
         return x,y
     return _parse_example
 
-def preprocess_data(data: tf.data.Dataset, target_size=None, num_classes=None, batch_size=1): #class_encoder=None):
+def preprocess_data(data: tf.data.Dataset, target_size=None, num_classes=None, batch_size=1, buffer_size=1024): #class_encoder=None):
     parse_example = get_parse_example_func(target_size=target_size, num_classes=num_classes) #class_encoder=class_encoder)
     return data.map(lambda x,y: parse_example(x, y), num_parallel_calls=-1) \
-                .shuffle(1024) \
+                .shuffle(buffer_size) \
                 .batch(batch_size) \
                 .prefetch(-1)
 
 
 
 def load_and_preprocess_data(data_config):
+    """ Load a dataset, resize images, one_hot encode labels, optionally apply any augmentations. 
+    Returns a dict of {split_name:tf.data.Dataset} key:value pairs
+    Args:
+        data_config (DictConfig):
+            data_config must have the following structure:
+                {
+                'load':{
+                        'dataset_name':'plant_village',
+                        'split':['train[0%:60%]','train[60%:70%]','train[70%:100%]'],
+                        'data_dir':'/media/data/jacob/tensorflow_datasets'
+                        },
+                          'preprocess' = {
+                                          'batch_size':32,
+                                          'target_size':[256,256]
+                                          }
+                         }
+                    }
+                
+                
+                }
+    """
 
     data, builder = load_tfds_dataset(dataset_name=data_config.load.dataset_name,
                                       split=data_config.load.split,
@@ -227,3 +245,29 @@ def load_and_preprocess_data(data_config):
     data['test'] = preprocess(data=data['test']) #, batch_size=config.batch_size)
     
     return data, class_encoder
+
+
+
+
+
+
+
+
+
+def decode_predictions(preds, top=5, model_json=""):
+
+
+    global CLASS_INDEX
+
+    if CLASS_INDEX is None:
+        CLASS_INDEX = json.load(open(model_json))
+    results = []
+    for pred in preds:
+        top_indices = pred.argsort()[-top:][::-1]
+        for i in top_indices:
+            each_result = []
+            each_result.append(CLASS_INDEX[str(i)])
+            each_result.append(pred[i])
+            results.append(each_result)
+
+    return results

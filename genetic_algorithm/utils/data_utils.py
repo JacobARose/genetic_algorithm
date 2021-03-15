@@ -1,10 +1,14 @@
 
 
 import numpy as np
-from typing import Dict
+import pandas as pd
+from typing import Dict, Union
 
-def class_counts(y: np.ndarray) -> Dict[int,int]:
-    return dict(zip(*np.unique(y, return_counts=True)))
+def class_counts(y: np.ndarray, as_dataframe: bool=False) -> Union[Dict[Union[str,int],int],pd.DataFrame]:
+    counts = dict(zip(*np.unique(y, return_counts=True)))
+    if as_dataframe:
+        counts = pd.DataFrame([(k,v) for k,v in counts.items()]).rename(columns={0:'label', 1:'label_count'})
+    return counts
 
 
 from boltons.dictutils import OneToOne
@@ -88,3 +92,45 @@ def log_csv_artifact(model, model_path, encoder, run=None, metadata=None):
     artifact.add_file(class_label_path, name=str(Path(class_label_path).name))
     
     run.log_artifact(artifact)
+    
+    
+    
+    
+# from collections import Mapping, Container
+# from sys import getsizeof
+ 
+# def deep_getsizeof(o, ids):
+#     """Find the memory footprint of a Python object
+ 
+#     This is a recursive function that drills down a Python object graph
+#     like a dictionary holding nested dictionaries with lists of lists
+#     and tuples and sets.
+ 
+#     The sys.getsizeof function does a shallow size of only. It counts each
+#     object inside a container as pointer only regardless of how big it
+#     really is.
+    
+#     Example:
+#         >> deep_getsizeof(prediction_results.get_state(), set())
+ 
+#     :param o: the object
+#     :param ids:
+#     :return:
+#     """
+#     d = deep_getsizeof
+#     if id(o) in ids:
+#         return 0
+ 
+#     r = getsizeof(o)
+#     ids.add(id(o))
+ 
+#     if isinstance(o, str):# or isinstance(0, unicode):
+#         return r
+ 
+#     if isinstance(o, Mapping):
+#         return r + sum(d(k, ids) + d(v, ids) for k, v in o.items())
+ 
+#     if isinstance(o, Container):
+#         return r + sum(d(x, ids) for x in o)
+ 
+#     return r
