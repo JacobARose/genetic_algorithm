@@ -402,10 +402,12 @@ class Dataset(object):
         #                   })        
         # data, self.class_encoder, self.preprocess_data = pnas.load_and_preprocess_data(data_config)
 
-        data, self.class_encoder = pnas.load_and_extract_pnas(threshold=threshold,
-                                                              validation_split=validation_split,
-                                                              seed=seed)
-
+        data, self.class_encoder = pnas.get_supervised(batch_size=batch_size,
+                                                       val_split=validation_split,
+                                                       threshold=threshold,
+                                                       seed=seed,
+                                                       return_label_encoder=True)
+        
         train_dataset = data['train'].map(lambda sample: (sample['x'], sample['y']))
         val_dataset = data['val'].map(lambda sample: (sample['x'], sample['y']))
         test_dataset = data['test'].map(lambda sample: (sample['x'], sample['y']))
