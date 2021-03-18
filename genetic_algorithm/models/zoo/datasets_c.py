@@ -418,17 +418,17 @@ class Dataset(object):
         num_classes = train_dataset.element_spec[0].shape[1]
 
         num_samples = batch_size*steps_per_epoch
-        train_dataset = train_dataset.unbatch().shuffle(num_samples).batch(num_samples)
+        train_dataset = train_dataset.shuffle(num_samples).batch(num_samples)
         self.train_data = next(iter(train_dataset.take(1)))
 
         print(f'Loaded {num_samples} samples into memory from PNAS train')
         num_samples = batch_size*validation_steps
-        val_dataset = val_dataset.unbatch().batch(num_samples)
+        val_dataset = val_dataset.batch(num_samples)
         self.val_data = next(iter(val_dataset.take(1)))
         print(f'Loaded {num_samples} samples into memory from PNAS val')
 
         num_samples = batch_size*test_steps
-        test_dataset = test_dataset.unbatch().batch(num_samples)
+        test_dataset = test_dataset.batch(num_samples)
         self.test_data = next(iter(test_dataset.take(1)))
         print(f'Loaded {num_samples} samples into memory from PNAS test')
         
