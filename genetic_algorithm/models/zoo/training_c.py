@@ -152,7 +152,10 @@ class Training(object):
     
     def get_metrics(self):
         
-        return ['acc', tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision'), tf.keras.metrics.TopKCategoricalAccuracy(k=3,name='top-3 accuracy')]
+        return ['acc',
+                tf.keras.metrics.Recall(name='recall'),
+                tf.keras.metrics.Precision(name='precision'),
+                tf.keras.metrics.TopKCategoricalAccuracy(k=3,name='top-3 accuracy')]
     
     
     def training(self,

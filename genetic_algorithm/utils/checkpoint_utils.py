@@ -21,25 +21,39 @@ tasks:
 
 """
 
-
-# from genetic_algorithms import stateful
+import dataclasses
 from typing import Optional
 from pathlib import Path
 import os
-from genetic_algorithm import stateful
+from contrastive_learning.data import stateful
 
 
 
 
 
 
+@dataclasses.dataclass
+class Checkpoint(stateful.Stateful):
+    """[summary]
 
+    Args:
+        stateful ([type]): [description]
+    """
+    task_id: str
+    root_dir: str
+    checkpoint_files = ('checkpoint', '{task_id}.json', 'chkpt.index')
 
-
+    def __init__(self,
+                 task_id: str,
+                 root_dir: str):
+        super().__init__(task_id=task_id, root_dir=root_dir)
 
 
 class CheckpointManager(stateful.Stateful):
-    
+    """ CheckPointManager Class
+    - Interface for Reading/Writing/Locating valid Checkpoints on disk created previously by the same interface
+
+    """    
     task_order = ('init', 'warmup', 'tune', 'pretext', 'train')
     checkpoint_files = ('checkpoint', '{task}.json', 'chkpt.index')
     
@@ -49,10 +63,17 @@ class CheckpointManager(stateful.Stateful):
     
     @classmethod
     def validate_checkpoint_dir(cls, ckpt_dir: str):
-        ''' Verify that user can load the checkpoint located in ckpt_dir
+        """
+        Verify that user can load the checkpoint located in ckpt_dir
         Return ckpt_dir if checkpoint contains valid files as specified in class attribute checkpoint_files,
         else: return None
-        '''
+
+        Args:
+            ckpt_dir (str): [description]
+
+        Returns:
+            [type]: [description]
+        """ 
         
         try:
             unvetted_task = Path(ckpt_dir).name
@@ -74,7 +95,19 @@ class CheckpointManager(stateful.Stateful):
             print(e)
         
     @classmethod
-    def find_latest_checkpoint(cls, root_dir: str='.', last_allowed: str=None) -> Optional[str]:
+    def find_latest_checkpoint(cls, 
+                               root_dir: str='.', 
+                               last_allowed: str=None
+                               ) -> Optional[str]:
+        """[summary]
+
+        Args:
+            root_dir (str, optional): [description]. Defaults to '.'.
+            last_allowed (str, optional): [description]. Defaults to None.
+
+        Returns:
+            Optional[str]: [description]
+        """                               
         ''' Search "root_dir" for subdirectories named for a valid task, inside of which belongs all relevant checkpoint assets/files/folders.
         
         
