@@ -268,7 +268,7 @@ class Dataset(object):
                             decay=('cosine', 0),
                             initial_frozen_layers: Tuple[int]=None,
                             threshold=100,
-                            val_split: float=0.0,
+                            val_split: float=0.2,
                             save: str=None,
                             allow_resume: bool=False, 
                             search_frozen_layers=False,
