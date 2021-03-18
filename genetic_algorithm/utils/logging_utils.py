@@ -23,7 +23,7 @@ import tensorflow as tf
 from typing import List, Any, Dict
 from contrastive_learning.data import stateful
 from contrastive_learning.utils.data_utils import log_model_artifact
-from contrastive_algorithm.utils.plotting_utils import display_classification_report
+from contrastive_learning.utils.plotting_utils import display_classification_report
 
 
 
