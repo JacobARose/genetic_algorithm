@@ -279,7 +279,7 @@ class Dataset(object):
                       grayscale=grayscale,
                       batch_size=batch_size,
                       threshold=threshold,
-                      validation_split=val_split,
+                      val_split=val_split,
                       seed=seed)
                       
         elif dataset_name == 'Extant':
