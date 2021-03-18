@@ -67,19 +67,19 @@ class Stateful(object):
             metadata = state['meta']
         log_json_artifact(path, run=run, artifact_type=artifact_type, metadata=metadata)
     
-    @classmethod
-    def log_model_artifact(cls, model, model_path: str, class_encoder=None, run=None, metadata=None, name: str=None):
-        '''
-        Logs a
+    # @classmethod
+    # def log_model_artifact(cls, model, model_path: str, class_encoder=None, run=None, metadata=None, name: str=None):
+    #     '''
+    #     Logs a
         
-        # TODO log chromosome along with model artifact
-        '''
-        metadata = metadata or {}
-        name = name or ''
-        print(f'Logging model artifact for Object {name} at\n{model_path}')
-        os.makedirs(os.path.dirname(model_path), exist_ok=True)
-        run = run or wandb
-        log_model_artifact(model, model_path, encoder=class_encoder, run=run, metadata=metadata)
+    #     # TODO log chromosome along with model artifact
+    #     '''
+    #     metadata = metadata or {}
+    #     name = name or ''
+    #     print(f'Logging model artifact for Object {name} at\n{model_path}')
+    #     os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    #     run = run or wandb
+    #     log_model_artifact(model, model_path, encoder=class_encoder, run=run, metadata=metadata)
     
     
     
@@ -91,7 +91,7 @@ def log_json_artifact(path, run=None, artifact_type='json_artifact', metadata=No
     artifact = wandb.Artifact(type=artifact_type, name=file_name)
     if os.path.isfile(path):
         artifact.add_file(path, name=file_name)
-    elif os.path.isdir(model_path):
+    elif os.path.isdir(path):
         artifact.add_dir(path, name=file_name)
     run.log_artifact(artifact)
     

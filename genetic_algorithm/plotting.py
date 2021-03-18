@@ -25,9 +25,24 @@ def get_hardest_k_examples(x: np.ndarray,
                            y: np.ndarray,
                            y_pred: np.ndarray,
                            losses: np.ndarray,
-                           model, 
-                           k=32):
+                           model: tf.keras.models.Model,
+                           k: int=32) -> [np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """[summary]
 
+    Args:
+        x (np.ndarray): [description]
+        y (np.ndarray): [description]
+        y_pred (np.ndarray): [description]
+        losses (np.ndarray): [description]
+        model (tf.keras.models.Model): [description]
+        k (int, optional): [description]. Defaults to 32.
+
+    Returns:
+        highest_k_losses: np.ndarray
+        hardest_k_examples: np.ndarray
+        hardest_k_true_labels: np.ndarray
+        hardest_k_predictions: np.ndarray
+    """
 #     class_probs = model.predict(x)
 #     predictions = np.argmax(class_probs, axis=1)
 #     losses = tf.keras.losses.categorical_crossentropy(y, class_probs)
@@ -45,7 +60,7 @@ def get_hardest_k_examples(x: np.ndarray,
     hardest_k_predictions = np.stack([y_pred[i] for i in argsort_loss[:k]])
 
     return highest_k_losses, hardest_k_examples, hardest_k_true_labels, hardest_k_predictions
-        
+
 def get_1_epoch_from_tf_data(dataset, max_rows=np.inf):
     bsz = next(iter(dataset))[0].shape[0]
     steps = len(dataset)*bsz
@@ -55,16 +70,30 @@ def get_1_epoch_from_tf_data(dataset, max_rows=np.inf):
     x, y = next(iter(dataset.batch(steps).take(1)))
     return x,y
     
-def get_predictions(x, y, model):
+def get_predictions(x: np.ndarray,
+                    y: np.ndarray,
+                    model: tf.keras.models.Model
+                    ) -> [np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Input the input images x, true labels y, and compiled model with self.predict() method
+    Return the logits, predicted class labels as ints, and the per sample losses
+
+    Args:
+        x (np.ndarray): [description]
+        y (np.ndarray): [description]
+        model (tf.data.Dataset): [description]
+
+    Returns:
+        [np.ndarray, np.ndarray, np.ndarray]: [description]
+    """    
     y_prob = model.predict(x)
     y_pred = np.argmax(y_prob, axis=1)
-#     y_true = tf.cast(y, dtype=tf.int64) #, depth=y_prob.shape[1])
-#     y_true = tf.one_hot(y, depth=y_prob.shape[1])
     losses = tf.keras.losses.categorical_crossentropy(y, y_prob)
     
     return y_prob, y_pred, losses
 
-
+#     y_true = tf.cast(y, dtype=tf.int64) #, depth=y_prob.shape[1])
+#     y_true = tf.one_hot(y, depth=y_prob.shape[1])
 
 ##################################################################
 ##################################################################
@@ -92,33 +121,33 @@ def log_high_loss_examples(test_dataset, model, k=32, log_predictions=True, max_
     
 ##################################################################
 ##################################################################
-    
-def plot_images_with_top_k_probs():
-    fig = plot.figure(figsize=(30, 30))
-    outer = gridspec.GridSpec(5, 5, wspace=0.2, hspace=0.2)
 
-    for i in range(25):
-        inner = gridspec.GridSpecFromSubplotSpec(2, 1,subplot_spec=outer[i], wspace=0.1, hspace=0.1)
-        rnd_number = randint(0,len(pred_images))
-        pred_image = np.array([pred_images[rnd_number]])
-        pred_class = get_classlabel(model.predict_classes(pred_image)[0])
-        pred_prob = model.predict(x_true).reshape(6)
-        for j in range(2):
-            if (j%2) == 0:
-                ax = plot.Subplot(fig, inner[j])
-                ax.imshow(x_true[0])
-                ax.set_title(y_pred)
-                ax.set_xticks([])
-                ax.set_yticks([])
-                fig.add_subplot(ax)
-            else:
-                ax = plot.Subplot(fig, inner[j])
-                ax.bar([0,1,2,3,4,5],y_prob)
-                fig.add_subplot(ax)
+# def plot_images_with_top_k_probs():
+#     fig = plot.figure(figsize=(30, 30))
+#     outer = gridspec.GridSpec(5, 5, wspace=0.2, hspace=0.2)
+
+#     for i in range(25):
+#         inner = gridspec.GridSpecFromSubplotSpec(2, 1,subplot_spec=outer[i], wspace=0.1, hspace=0.1)
+#         rnd_number = randint(0,len(pred_images))
+#         pred_image = np.array([pred_images[rnd_number]])
+#         pred_class = get_classlabel(model.predict_classes(pred_image)[0])
+#         pred_prob = model.predict(x_true).reshape(6)
+#         for j in range(2):
+#             if (j%2) == 0:
+#                 ax = plot.Subplot(fig, inner[j])
+#                 ax.imshow(x_true[0])
+#                 ax.set_title(y_pred)
+#                 ax.set_xticks([])
+#                 ax.set_yticks([])
+#                 fig.add_subplot(ax)
+#             else:
+#                 ax = plot.Subplot(fig, inner[j])
+#                 ax.bar([0,1,2,3,4,5],y_prob)
+#                 fig.add_subplot(ax)
 
 
-#     fig.show()
-    
+##################################################################
+##################################################################
     
     
 def plot_confusion_matrix(cm: Union[np.ndarray, ConfusionMatrix],
@@ -423,7 +452,7 @@ def log_classification_report(dataset, model, data_split_name='test', class_enco
     x, y_true = get_1_epoch_from_tf_data(dataset)
     y_true = y_true.numpy()
     
-    y_prob, y_pred, losses = get_predictions(x, y_true, model)
+    _, y_pred, _ = get_predictions(x, y_true, model)
     y_true = np.argmax(y_true, axis=1)
     
     fig, ax = plot_classification_report(y_true, y_pred, target_names=None)

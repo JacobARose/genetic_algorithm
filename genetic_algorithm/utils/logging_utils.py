@@ -1,25 +1,32 @@
+"""
+logging_utils.py
 
+Created by: Jacob A Rose
+Created On: Monday, March 15th, 2021
+
+Contains:
+
+func class_counts(y: np.ndarray, as_dataframe: bool=False) -> Union[Dict[Union[str,int],int],pd.DataFrame]
+func log_model_artifact(model, model_path, encoder, run=None, metadata=None):
+
+"""
+
+import datetime
 import numpy as np
 from typing import Dict
-
-# def class_counts(y: np.ndarray) -> Dict[int,int]:
-#     return dict(zip(*np.unique(y, return_counts=True)))
-
 from boltons.dictutils import OneToOne
 import os
 import pandas as pd
 from pathlib import Path
 import wandb
-
-from genetic_algorithm.datasets.plant_village import ClassLabelEncoder
-from genetic_algorithm.plotting import display_classification_report
-
-
+import tensorflow as tf
 from typing import List, Any, Dict
-from genetic_algorithm import stateful
+from contrastive_learning.data import stateful
+from contrastive_learning.utils.data_utils import log_model_artifact
+from contrastive_algorithm.utils.plotting_utils import display_classification_report
 
 
-import datetime
+
 def get_datetime_str(datetime_obj: datetime.datetime=None):
     '''Helper function to get formatted date and time as a str. Defaults to current time if none is passed.
     
@@ -30,7 +37,6 @@ def get_datetime_str(datetime_obj: datetime.datetime=None):
     
     if datetime_obj is None:
         datetime_obj = datetime.datetime.utcnow()
-        
     return datetime_obj.strftime('%c')
 
 def np_onehot(y: np.ndarray, depth: int):
@@ -49,9 +55,6 @@ def test_np_onehot():##y=None, depth=None):
     
     assert np.all(y_one_hot == y_onehot_ground)
     assert np.all(np.argmax(y_one_hot, axis=1) == y)
-
-
-
 
 
 
@@ -78,12 +81,18 @@ class PredictionResults(stateful.Stateful):
     '''
     
     name: str = 'predictions'
-    y_prob: np.ndarray = None
-    y_true: np.ndarray = None
+    _y_prob: np.ndarray = None
+    _y_true: np.ndarray = None
     class_names: List[str] = None
-    extra_metadata: Dict[str,Any] = None
+    _extra_metadata: Dict[str,Any] = None
         
-    def __init__(self, y_prob, y_true, class_names=None, name='predictions', enforce_schema=True, **extra_metadata):
+    def __init__(self, 
+                 y_prob,
+                 y_true,
+                 class_names=None,
+                 name='predictions',
+                 enforce_schema=True,
+                 **extra_metadata):
         self._assign_values(y_prob=y_prob, y_true=y_true, class_names=class_names, name=name, enforce_schema=enforce_schema, **extra_metadata)
         
     def _assign_values(self, y_prob, y_true, class_names=None, name='predictions', enforce_schema=True, **extra_metadata):
@@ -106,15 +115,21 @@ class PredictionResults(stateful.Stateful):
         if self.class_names:
             assert len(self.class_names) == self.num_classes
             
-        if len(self.extra_metadata) > 0:
-            assert isinstance(self.extra_metadata, dict)
-            for key, item in self.extra_metadata.items():
+    @property
+    def extra_metadata(self):
+        return self._extra_metadata
+
+    @extra_metadata.setter
+    def extra_metadata(self, metadata: Dict):
+        if len(metadata) > 0:
+            assert isinstance(metadata, dict)
+            for key, item in metadata.items():
                 if isinstance(item, np.integer):
-                    self.extra_metadata[key] = int(item)
+                    self._extra_metadata.update({key:int(item)})
                 elif isinstance(item, np.floating):
-                    self.extra_metadata[key] = float(item)
+                    self._extra_metadata.update({key:float(item)})
                 elif isinstance(item, np.ndarray):
-                    self.extra_metadata[key] = item.tolist()
+                    self._extra_metadata.update({key:item.tolist()})
 
     def decode_names(self, y: np.ndarray, as_array: bool=False):
         ''' int -> str data labels/predictions
@@ -127,7 +142,6 @@ class PredictionResults(stateful.Stateful):
             return np.asarray(names)
         return names
 
-    
     def get_y_pred(self, one_hot=False):
         if one_hot:
             return np_onehot(self.y_pred, depth=self.num_classes)
@@ -226,13 +240,20 @@ class PredictionResults(stateful.Stateful):
         
         
 class PredictionMetrics(stateful.Stateful):
-    
+    """
+    PredictionMetrics class
+
+    Container for 
+
+    Args:
+        stateful ([type]): [description]
+    """    
     name: str = 'metrics'
     _results: PredictionResults = None
-    tp: np.ndarray = None
-    tn: np.ndarray = None
-    fp: np.ndarray = None
-    fn: np.ndarray = None
+    # tp: np.ndarray = None
+    # tn: np.ndarray = None
+    # fp: np.ndarray = None
+    # fn: np.ndarray = None
     class_names: List[str] = None
     
     _metric_names = ['tp','tn','fp','fn']
@@ -299,14 +320,15 @@ class PredictionMetrics(stateful.Stateful):
             classification_report = pd.DataFrame.from_records(classification_report)
             classification_report.index = agg_funcs
             
-#         if display_widget:
-        try:
-            classification_report = display_classification_report(classification_report)
-        except Exception as e:
-            print(e)
-            import ipdb; ipdb.set_trace()
-            print('Failed to display HTML widget. Returning classification report dataframe')
-            
+        if display_widget:
+            try:
+                classification_report = display_classification_report(classification_report)
+            except Exception as e:
+                print(e)
+                import ipdb;
+                ipdb.set_trace()
+                print('Failed to display HTML widget. Returning classification report dataframe')
+                
         return classification_report
         
     @property
@@ -382,71 +404,6 @@ class PredictionMetrics(stateful.Stateful):
         f1 = 2 * (precision * recall) / (precision + recall)
         
         return f1
-    
-    
-    
-
-    
-# prediction_results = PredictionResults(y_prob,
-#                                        y_true,
-#                                        class_names=class_names,
-#                                        name='test_predictions',
-#                                        dataset_name=dataset_name,
-#                                        creation_date=get_datetime_str(), 
-#                                        model_name = resnet.model_name,
-#                                        groups=resnet.groups)
-
-# prediction_results.save(fname=os.path.join(save_dir,'prediction_results.json'))
-# prediction_results.reload(fname=os.path.join(save_dir,'prediction_results.json'))
-
-# import wandb
-# run = wandb.init()
-# prediction_results.log_json_artifact(path=os.path.join(save_dir,'prediction_results.json'), run=run) #, artifact_type: str=None)
-
-# artifact = run.use_artifact('jrose/genetic_algorithm-Notebooks/prediction_results.json:v0', type="<class '__main__.PredictionResults'>")
-# artifact_dir = artifact.download()
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-#         if agg_mode in ['class',1]:
-#             recall = 
-#             return {k:np.mean(v, axis=0) for k,v in values.items()}
-#         elif agg_mode in ['macro',2]:
-#             return {k:np.mean(v) for k,v in self.recall(agg_mode='class').items()}
-        
-    
-#     def agg_by_sample(self, metric)
-
-#     assert np.sum([tp,tn,fp,fn]) == np.prod(self.y_pred_onehot.shape)
-
-        
-        
-        
-#         # per-sample metrics
-#         self.tp = np.sum(np.logical_and(y_pred_onehot == 1, y_true_onehot == 1), axis=1)
-#         # True Negative (TN): we predict a label of 0 (negative), and the true label is 0.
-#         self.tn = np.sum(np.logical_and(y_pred_onehot == 0, y_true_onehot == 0), axis=1)
-#         # False Positive (FP): we predict a label of 1 (positive), but the true label is 0.
-#         self.fp = np.sum(np.logical_and(y_pred_onehot == 1, y_true_onehot == 0), axis=1)
-#         # False Negative (FN): we predict a label of 0 (negative), but the true label is 1.
-#         self.fn = np.sum(np.logical_and(y_pred_onehot == 0, y_true_onehot == 1), axis=1)
-
-#         assert np.sum([tp,tn,fp,fn]) == np.prod(y_pred_onehot.shape)
 
     @property
     def num_classes(self):
@@ -463,34 +420,6 @@ class PredictionMetrics(stateful.Stateful):
         negatives = self.tn + self.fp
         assert (negatives.shape[0]*(self.num_classes-1)) == negatives.sum()
         return negatives
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-        
-        
-        
-        
-        
-        
-        
         
 def get_hardest_k_examples(test_dataset, model, k=32):
     class_probs = model.predict(test_dataset)
@@ -514,3 +443,40 @@ def log_high_loss_examples(test_dataset, model, k=32, run=None):
                             [wandb.Image(hard_example, caption = f'true:{label},\npred:{pred}\nloss={loss}')
                              for hard_example, label, pred, loss in zip(hardest_k_examples, true_labels, predictions, losses)]
         })
+
+
+    
+
+    
+# prediction_results = PredictionResults(y_prob,
+#                                        y_true,
+#                                        class_names=class_names,
+#                                        name='test_predictions',
+#                                        dataset_name=dataset_name,
+#                                        creation_date=get_datetime_str(), 
+#                                        model_name = resnet.model_name,
+#                                        groups=resnet.groups)
+
+# prediction_results.save(fname=os.path.join(save_dir,'prediction_results.json'))
+# prediction_results.reload(fname=os.path.join(save_dir,'prediction_results.json'))
+
+# import wandb
+# run = wandb.init()
+# prediction_results.log_json_artifact(path=os.path.join(save_dir,'prediction_results.json'), run=run) #, artifact_type: str=None)
+
+# artifact = run.use_artifact('jrose/genetic_algorithm-Notebooks/prediction_results.json:v0', type="<class '__main__.PredictionResults'>")
+# artifact_dir = artifact.download()
+    
+#     def agg_by_sample(self, metric)
+#         assert np.sum([tp,tn,fp,fn]) == np.prod(self.y_pred_onehot.shape)
+
+#         # per-sample metrics
+#         self.tp = np.sum(np.logical_and(y_pred_onehot == 1, y_true_onehot == 1), axis=1)
+#         # True Negative (TN): we predict a label of 0 (negative), and the true label is 0.
+#         self.tn = np.sum(np.logical_and(y_pred_onehot == 0, y_true_onehot == 0), axis=1)
+#         # False Positive (FP): we predict a label of 1 (positive), but the true label is 0.
+#         self.fp = np.sum(np.logical_and(y_pred_onehot == 1, y_true_onehot == 0), axis=1)
+#         # False Negative (FN): we predict a label of 0 (negative), but the true label is 1.
+#         self.fn = np.sum(np.logical_and(y_pred_onehot == 0, y_true_onehot == 1), axis=1)
+
+#         assert np.sum([tp,tn,fp,fn]) == np.prod(y_pred_onehot.shape)

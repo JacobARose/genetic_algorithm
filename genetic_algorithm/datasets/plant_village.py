@@ -139,7 +139,7 @@ def load_plant_village_dataset(split=['train'],
                                batch_size=None):
     
     builder = tfds.builder('plant_village', data_dir=data_dir)
-    ds_info = builder.info
+    # ds_info = builder.info
     builder.download_and_prepare()
 
     print(f'splits: {split}')
@@ -256,6 +256,7 @@ def load_and_preprocess_data(data_config):
 
 def decode_predictions(preds, top=5, model_json=""):
 
+    import json
 
     global CLASS_INDEX
 
