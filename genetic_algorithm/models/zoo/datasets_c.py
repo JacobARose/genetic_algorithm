@@ -408,9 +408,9 @@ class Dataset(object):
                                                        seed=seed,
                                                        return_label_encoder=True)
         
-        train_dataset = data['train'].map(lambda sample: (sample['x'], sample['y']))
-        val_dataset = data['val'].map(lambda sample: (sample['x'], sample['y']))
-        test_dataset = data['test'].map(lambda sample: (sample['x'], sample['y']))
+        train_dataset = data['train'] #.map(lambda sample: (sample['x'], sample['y']))
+        val_dataset = data['val'] #.map(lambda sample: (sample['x'], sample['y']))
+        test_dataset = data['test'] #.map(lambda sample: (sample['x'], sample['y']))
         
         steps_per_epoch = len(data['train'])
         validation_steps = len(data['val'])
