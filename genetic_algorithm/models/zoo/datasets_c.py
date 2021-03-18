@@ -39,9 +39,9 @@ from boltons.funcutils import partial
 from omegaconf import DictConfig
 from genetic_algorithm.datasets.plant_village import ClassLabelEncoder, load_and_preprocess_data
 
-from genetic_algorithm.datasets import pnas
+# from genetic_algorithm.datasets import pnas
 from contrastive_learning.data.get_dataset import get_dataset
-from contrastive_learning.data import extant
+from contrastive_learning.data import extant, pnas
 import wandb
 
 
@@ -352,46 +352,64 @@ class Dataset(object):
     def pnas(self,
              target_size=[256,256],
              batch_size=32,
-             threshold=100):
+             threshold=100,
+             validation_split: float=0.2,
+             seed: int=None):
         """
         PNAS leaf disease dataset (2016)
         """
 
         if not self._dataset_initialized:
-            self.pnas_init(target_size=target_size, batch_size=batch_size, threshold=threshold)
+            self.pnas_init(target_size=target_size, batch_size=batch_size, threshold=threshold, validation_split=validation_split, seed=seed)
             
             
-    def pnas_init(self, target_size=[256,256], batch_size=32, threshold=100):
-        """PNAS leaf disease dataset (2016)
+    def pnas_init(self,
+                  target_size=[256,256],
+                  batch_size=32,
+                  threshold=100,
+                  validation_split=0.2,
+                  seed: int=None):
+        """
+        PNAS leaf disease dataset (2016)
         
         Run this function to initialize the dataset without performing any model training or evaluation.
         
-        
         # TODO Introduce a wandb dataset artifact logging option here
+
+        Args:
+            target_size (list, optional): [description]. Defaults to [256,256].
+            batch_size (int, optional): [description]. Defaults to 32.
+            threshold (int, optional): [description]. Defaults to 100.
+            validation_split (float, optional): [description]. Defaults to 0.2.
+            seed (int, optional): [description]. Defaults to None.
+
+        Raises:
+            Exception: [description]
         """
         
-        data_config = DictConfig({
-                            'load':{
-                                'dataset_name':'PNAS'
-                                },
-                            'preprocess':{
-                                          'batch_size':batch_size,
-                                          'target_size':target_size,
-                                          'threshold':threshold
-                                          },
-                            'augment':   {
-                                          'augmix_batch_size':max([batch_size*2, 48])
-                                          }
-                          })
-        
-        
-        data, self.class_encoder, self.preprocess_data = pnas.load_and_preprocess_data(data_config)
+        # data_config = DictConfig({
+        #                     'load':{
+        #                         'dataset_name':'PNAS'
+        #                         },
+        #                     'preprocess':{
+        #                                   'batch_size':batch_size,
+        #                                   'target_size':target_size,
+        #                                   'threshold':threshold
+        #                                   },
+        #                     'augment':   {
+        #                                   'augmix_batch_size':max([batch_size*2, 48])
+        #                                   }
+        #                   })        
+        # data, self.class_encoder, self.preprocess_data = pnas.load_and_preprocess_data(data_config)
+
+        data, self.class_encoder = pnas.load_and_extract_pnas(threshold=threshold,
+                                                              validation_split=validation_split,
+                                                              seed=seed)
 
         train_dataset = data['train']
         val_dataset = data['val']
         test_dataset = data['test']
         
-        batch_size = data_config.preprocess.batch_size
         steps_per_epoch = len(data['train'])
         validation_steps = len(data['val'])
         test_steps = len(data['test'])
@@ -453,16 +471,6 @@ class Dataset(object):
         
         # TODO Introduce a wandb dataset artifact logging option here
         """
-        
-        data_config = DictConfig({
-                            'load':{
-                                'dataset_name':'Extant'
-                                },
-                            'preprocess':{
-                                          'batch_size':batch_size,
-                                          'target_size':target_size
-                                          }
-                          })
         
         train_data, val_data, test_data = get_dataset(dataset='extant_sup',
                                                       batch_size=batch_size,
