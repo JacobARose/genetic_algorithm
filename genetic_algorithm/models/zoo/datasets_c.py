@@ -406,9 +406,9 @@ class Dataset(object):
                                                               validation_split=validation_split,
                                                               seed=seed)
 
-        train_dataset = data['train']
-        val_dataset = data['val']
-        test_dataset = data['test']
+        train_dataset = data['train'].map(lambda sample: (sample['x'], sample['y']))
+        val_dataset = data['val'].map(lambda sample: (sample['x'], sample['y']))
+        test_dataset = data['test'].map(lambda sample: (sample['x'], sample['y']))
         
         steps_per_epoch = len(data['train'])
         validation_steps = len(data['val'])
