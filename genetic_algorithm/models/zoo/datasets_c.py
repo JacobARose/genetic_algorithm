@@ -413,7 +413,7 @@ class Dataset(object):
         steps_per_epoch = len(data['train'])
         validation_steps = len(data['val'])
         test_steps = len(data['test'])
-        num_classes = train_dataset.element_spec[1].shape[1]
+        num_classes = train_dataset.element_spec[0].shape[1]
 
         num_samples = batch_size*steps_per_epoch
         train_dataset = train_dataset.unbatch().shuffle(num_samples).batch(num_samples)
