@@ -408,44 +408,48 @@ class Dataset(object):
                                                        seed=seed,
                                                        return_label_encoder=True)
         
-        train_dataset = data[0]#.map(lambda sample: (sample['x'], sample['y']))
-        val_dataset = data[1]#.map(lambda sample: (sample['x'], sample['y']))
-        test_dataset = data[2]#.map(lambda sample: (sample['x'], sample['y']))
+        train_data = data[0]#.map(lambda sample: (sample['x'], sample['y']))
+        val_data = data[1]#.map(lambda sample: (sample['x'], sample['y']))
+        test_data = data[2]#.map(lambda sample: (sample['x'], sample['y']))
         
-        steps_per_epoch = len(train_dataset) #data['train'])
-        validation_steps = len(val_dataset) #data['val'])
-        test_steps = len(test_dataset) #data['test'])
-        num_classes = train_dataset.element_spec[0].shape[1]
+        steps_per_epoch = len(train_data) #data['train'])
+        validation_steps = len(val_data) #data['val'])
+        test_steps = len(test_data) #data['test'])
+        # num_classes = train_data.element_spec[0].shape[1]
 
-        num_samples = batch_size*steps_per_epoch
-        train_dataset = train_dataset.shuffle(num_samples).batch(num_samples)
-        self.train_data = next(iter(train_dataset.take(1)))
+        # num_samples = batch_size*steps_per_epoch
+        # train_dataset = train_dataset.shuffle(num_samples).batch(num_samples)
+        # self.train_data = next(iter(train_dataset.take(1)))
 
-        print(f'Loaded {num_samples} samples into memory from PNAS train')
-        num_samples = batch_size*validation_steps
-        val_dataset = val_dataset.batch(num_samples)
-        self.val_data = next(iter(val_dataset.take(1)))
-        print(f'Loaded {num_samples} samples into memory from PNAS val')
+        # print(f'Loaded {num_samples} samples into memory from PNAS train')
+        # num_samples = batch_size*validation_steps
+        # val_dataset = val_dataset.batch(num_samples)
+        # self.val_data = next(iter(val_dataset.take(1)))
+        # print(f'Loaded {num_samples} samples into memory from PNAS val')
 
-        num_samples = batch_size*test_steps
-        test_dataset = test_dataset.batch(num_samples)
-        self.test_data = next(iter(test_dataset.take(1)))
-        print(f'Loaded {num_samples} samples into memory from PNAS test')
+        # num_samples = batch_size*test_steps
+        # test_dataset = test_dataset.batch(num_samples)
+        # self.test_data = next(iter(test_dataset.take(1)))
+        # print(f'Loaded {num_samples} samples into memory from PNAS test')
         
-        self.num_samples = {'train':batch_size*len(self.train_data),
-                            'val':batch_size*len(self.val_data),
-                            'test':batch_size*len(self.test_data)}
-        
-        if len(self.train_data)==3:
-            self.catalog_numbers_train, self.x_train, self.y_train = self.train_data
-            self.catalog_numbers_val, self.x_val, self.y_val = self.val_data
-            self.catalog_numbers_test, self.x_test, self.y_test = self.test_data
-        elif len(self.train_data)==2:
-            self.x_train, self.y_train = self.train_data
-            self.x_val, self.y_val = self.val_data
-            self.x_test, self.y_test = self.test_data
-        else:
-            raise Exception('Invalid train_dataset format')
+        self.train_data, self.val_data, self.test_data = train_data, val_data, test_data
+        self.x_train, self.x_val, self.x_test = train_data, val_data, test_data
+        self.y_train, self.y_val, self.y_test = None, None, None
+
+        self.num_samples = {'train':batch_size*steps_per_epoch,
+                            'val':batch_size*validation_steps,
+                            'test':batch_size*test_steps}
+
+        # if len(self.train_data)==3:
+        #     self.catalog_numbers_train, self.x_train, self.y_train = self.train_data
+        #     self.catalog_numbers_val, self.x_val, self.y_val = self.val_data
+        #     self.catalog_numbers_test, self.x_test, self.y_test = self.test_data
+        # elif len(self.train_data)==2:
+        #     self.x_train, self.y_train = self.train_data
+        #     self.x_val, self.y_val = self.val_data
+        #     self.x_test, self.y_test = self.test_data
+        # else:
+        #     raise Exception('Invalid train_dataset format')
             
         self._dataset_initialized = True
         
