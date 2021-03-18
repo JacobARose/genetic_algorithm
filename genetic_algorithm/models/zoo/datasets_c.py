@@ -408,13 +408,13 @@ class Dataset(object):
                                                        seed=seed,
                                                        return_label_encoder=True)
         
-        train_dataset = data['train'] #.map(lambda sample: (sample['x'], sample['y']))
-        val_dataset = data['val'] #.map(lambda sample: (sample['x'], sample['y']))
-        test_dataset = data['test'] #.map(lambda sample: (sample['x'], sample['y']))
+        train_dataset = data[0].map(lambda sample: (sample['x'], sample['y']))
+        val_dataset = data[1].map(lambda sample: (sample['x'], sample['y']))
+        test_dataset = data[2].map(lambda sample: (sample['x'], sample['y']))
         
-        steps_per_epoch = len(data['train'])
-        validation_steps = len(data['val'])
-        test_steps = len(data['test'])
+        steps_per_epoch = len(train_dataset) #data['train'])
+        validation_steps = len(val_dataset) #data['val'])
+        test_steps = len(test_dataset) #data['test'])
         num_classes = train_dataset.element_spec[0].shape[1]
 
         num_samples = batch_size*steps_per_epoch
