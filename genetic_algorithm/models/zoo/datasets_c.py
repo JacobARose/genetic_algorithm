@@ -261,6 +261,7 @@ class Dataset(object):
                             dataset_name: str='PNAS',
                             target_size=[256,256],
                             batch_size=32,
+                            grayscale=False,
                             num_epochs: int=20,
                             num_warmup_epochs: int=5,
                             num_epochs_per_hp_search: int=4,
@@ -273,10 +274,14 @@ class Dataset(object):
                             search_frozen_layers=False,
                             seed: int=None):
         
-        if dataset_name == 'PNAS':    
+        if dataset_name == 'PNAS':
             self.pnas(target_size=target_size,
+                      grayscale=grayscale,
                       batch_size=batch_size,
-                      threshold=threshold)
+                      threshold=threshold,
+                      validation_split=val_split,
+                      seed=seed)
+                      
         elif dataset_name == 'Extant':
             self.extant(target_size=target_size,
                         batch_size=batch_size,
@@ -351,6 +356,7 @@ class Dataset(object):
             
     def pnas(self,
              target_size=[256,256],
+             grayscale=False,
              batch_size=32,
              threshold=100,
              validation_split: float=0.2,
@@ -360,11 +366,12 @@ class Dataset(object):
         """
 
         if not self._dataset_initialized:
-            self.pnas_init(target_size=target_size, batch_size=batch_size, threshold=threshold, validation_split=validation_split, seed=seed)
+            self.pnas_init(target_size=target_size, grayscale=grayscale, batch_size=batch_size, threshold=threshold, validation_split=validation_split, seed=seed)
             
             
     def pnas_init(self,
                   target_size=[256,256],
+                  grayscale=False,
                   batch_size=32,
                   threshold=100,
                   validation_split=0.2,
@@ -402,7 +409,9 @@ class Dataset(object):
         #                   })        
         # data, self.class_encoder, self.preprocess_data = pnas.load_and_preprocess_data(data_config)
 
-        data, self.class_encoder = pnas.get_supervised(batch_size=batch_size,
+        data, self.class_encoder = pnas.get_supervised(target_size=target_size,
+                                                       grayscale=grayscale,
+                                                       batch_size=batch_size,
                                                        val_split=validation_split,
                                                        threshold=threshold,
                                                        seed=seed,
