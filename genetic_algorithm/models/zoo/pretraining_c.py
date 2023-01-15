@@ -211,9 +211,14 @@ class Pretraining(object):
         steps_per_epoch = int(np.floor(num_train_samples/batch_size))
 
         if isinstance(x_train, tf.python.data.ops.dataset_ops.BatchDataset):
-            x_train = x_train.unbatch().batch(batch_size)
+            x_train = x_train.unbatch() #.batch(batch_size)
             if y_train is not None:
-                y_train = y_train.unbatch().batch(batch_size)
+                y_train = y_train.unbatch() #.batch(batch_size)
+                
+        x_train = x_train.batch(batch_size)
+        if y_train is not None:
+            y_train = y_train.batch(batch_size)
+                
         if issubclass(type(x_train), tf.data.Dataset):
             batch_size=None
 
